@@ -105,6 +105,7 @@
 
             <input type="email" name="email" placeholder="Correo electrónico" required>
             <input type="password" name="password" placeholder="Contraseña" required>
+            <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
 
             <button type="submit">Entrar</button>
 
@@ -118,6 +119,43 @@
 
     </div>
 </div>
+{% if recaptcha_site_key %}
+<script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('form[action="/login"]');
+    var recaptchaField = document.getElementById('g-recaptcha-response');
+
+    if (!form || !recaptchaField) {
+        return;
+    }
+
+    form.addEventListener('submit', function (event) {
+        if (recaptchaField.value) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (typeof grecaptcha === 'undefined') {
+            alert('No se pudo cargar reCAPTCHA. Intenta de nuevo.');
+            return;
+        }
+
+        grecaptcha.ready(function () {
+            grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'login'})
+                .then(function (token) {
+                    recaptchaField.value = token;
+                    form.submit();
+                })
+                .catch(function () {
+                    alert('No se pudo verificar reCAPTCHA. Intenta de nuevo.');
+                });
+        });
+    });
+});
+</script>
+{% endif %}
 
 </body>
 </html>
