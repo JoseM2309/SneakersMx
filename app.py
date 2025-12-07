@@ -131,27 +131,49 @@ def registro():
 # ==============================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print("prueba")
+    recaptcha_site_key = os.environ.get('RECAPTCHA_SITE_KEY', "6LfgThQsAAAAAKBIskJdPoTp_e9DeehR4fWAOZQc")
+    recaptcha_secret_key = os.environ.get('RECAPTCHA_SECRET_KEY', "6LfgThQsAAAAANgjrKYNTDeOT9kwDhWpz2vAqbC4")
+
     if request.method == 'POST':
-        email = request.form.get('email').strip().lower()
-        password = request.form.get('password')
-        print(email,password)
-        usuario = obtener_usuario_por_email(email)
-        print(usuario.password_hash)
-        
-        
-        if usuario and check_password_hash(usuario.password_hash, password):
-            print("log")
-            login_user(usuario)
-            flash(f"Bienvenido {usuario.nombre}!", "success")
-            
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
-        else:
-            flash("Correo o contraseña incorrectos.", "error")
+        token = request.form.get('g-recaptcha-response')
+
+        if not token:
+            flash("Completa la verificación reCAPTCHA.", "error")
             return redirect(url_for('login'))
 
-    return render_template("login.html")
+        if not recaptcha_secret_key:
+            flash("Configuración de reCAPTCHA incompleta.", "error")
+            return redirect(url_for('login'))
+
+        try:
+            response = requests.post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                data={'secret': recaptcha_secret_key, 'response': token}
+            )
+            result = response.json()
+        except requests.RequestException:
+            flash("Error al verificar reCAPTCHA. Intenta de nuevo.", "error")
+            return redirect(url_for('login'))
+
+        if not result.get('success'):
+            flash("reCAPTCHA no verificado. Intenta de nuevo.", "error")
+            return redirect(url_for('login'))
+
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        usuario = obtener_usuario_por_email(email)
+
+        if usuario and check_password_hash(usuario.password_hash, password):
+            login_user(usuario)
+            flash(f"Bienvenido {usuario.nombre}!", "success")
+
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+
+        flash("Correo o contraseña incorrectos.", "error")
+        return redirect(url_for('login'))
+
+    return render_template("login.html", recaptcha_site_key=recaptcha_site_key)
 
 
 # ==============================
