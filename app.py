@@ -289,6 +289,27 @@ def eliminar_carrito(id):
     return redirect(url_for('carrito'))
 
 # ==============================
+# API CHATBOT
+# ==============================
+@app.route('/api/chatbot', methods=['POST'])
+def api_chatbot():
+    data = request.get_json()
+    option = data.get('option', '').lower()
+
+    respuestas = {
+        "precios": "Nuestros precios van desde $500 hasta $5000 dependiendo del modelo.",
+        "envíos": "Realizamos envíos a toda la República Mexicana. Costo estándar $150.",
+        "métodos de pago": "Aceptamos tarjetas, PayPal y transferencias bancarias.",
+        "disponibilidad": "Todos nuestros productos están sujetos a existencia en almacén.",
+        "productos destacados": "Los más vendidos este mes son: Air Max 2025, Jordan Retro 12, Yeezy Boost 2025."
+    }
+
+    reply = respuestas.get(option, "Lo siento, no entendí tu pregunta. Por favor selecciona una opción.")
+    opciones_siguientes = ["Precios", "Envíos", "Métodos de pago", "Disponibilidad", "Productos destacados"]
+
+    return jsonify({"reply": reply, "options": opciones_siguientes})
+
+# ==============================
 # RUN SERVER
 # ==============================
 if __name__ == "__main__":
