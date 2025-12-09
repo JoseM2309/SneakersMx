@@ -84,8 +84,15 @@ def load_user(user_id):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     print("prueba")
+
     if request.method == 'POST':
-        email = request.form.get('email').strip().lower()
+        email = request.form.get('email')
+
+        if not email:
+            flash("Correo o contraseña incorrectos.", "error")
+            return redirect(url_for('login'))
+
+        email = email.strip().lower()
         password = request.form.get('password')
 
         usuario = obtener_usuario_por_email(email)
@@ -101,7 +108,6 @@ def login():
             return redirect(url_for('login'))
 
     return render_template("login.html")
-
 
 # ==============================
 # LOGOUT
@@ -252,7 +258,7 @@ def eliminar_carrito(id):
     return redirect(url_for('carrito'))
 
 # ==============================
-# CONTACTO
+# CONTACTO (reCAPTCHA FIX)
 # ==============================
 @app.route('/contacto', methods=['GET', 'POST'])
 def contacto():
@@ -262,14 +268,16 @@ def contacto():
     if request.method == 'POST':
         token = request.form.get('g-recaptcha-response')
 
-        response = requests.post(
-            'https://www.google.com/recaptcha/api/siteverify',
-            data={
-                'secret': recaptcha_secret_key,
-                'response': token
-            }
-        )
-        result = response.json()
+        try:
+            response = requests.post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                data={'secret': recaptcha_secret_key, 'response': token},
+                timeout=5  # <---- FIX RENDER
+            )
+            result = response.json()
+        except:
+            flash("Error al verificar reCAPTCHA. Intenta de nuevo.", "error")
+            return redirect(url_for('contacto'))
 
         if not result.get('success'):
             flash("reCAPTCHA no verificado. Intenta de nuevo.", "error")
@@ -379,11 +387,15 @@ def pago_completado():
     recaptcha_token = data.get("recaptcha_token")
     recaptcha_secret = os.environ.get("RECAPTCHA_SECRET_KEY")
 
-    response = requests.post(
-        "https://www.google.com/recaptcha/api/siteverify",
-        data={"secret": recaptcha_secret, "response": recaptcha_token}
-    )
-    result = response.json()
+    try:
+        response = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": recaptcha_secret, "response": recaptcha_token},
+            timeout=5   # <---- FIX RENDER
+        )
+        result = response.json()
+    except:
+        return jsonify({"status": "error", "mensaje": "Error verificando reCAPTCHA"}), 400
 
     if not result.get("success") or result.get("score", 0) < 0.5:
         return jsonify({"status": "error", "mensaje": "reCAPTCHA fallido"}), 400
