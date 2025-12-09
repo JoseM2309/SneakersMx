@@ -83,31 +83,41 @@ def load_user(user_id):
 # ==============================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print("prueba")
+    print("📩 Entrando a /login")
 
     if request.method == 'POST':
         email = request.form.get('email')
+        password = request.form.get('password')
 
-        if not email:
+        print("Email recibido:", email)
+        print("Password recibido:", password)
+
+        if not email or not password:
             flash("Correo o contraseña incorrectos.", "error")
             return redirect(url_for('login'))
 
         email = email.strip().lower()
-        password = request.form.get('password')
 
         usuario = obtener_usuario_por_email(email)
+        print("Usuario encontrado:", usuario)
 
-        if usuario and check_password_hash(usuario.password_hash, password):
+        if not usuario:
+            flash("Correo o contraseña incorrectos.", "error")
+            return redirect(url_for('login'))
+
+        # IMPORTANTE: verifica que tu campo exista
+        password_hash = usuario.password_hash if hasattr(usuario, 'password_hash') else usuario.password
+
+        if check_password_hash(password_hash, password):
             login_user(usuario)
             flash(f"Bienvenido {usuario.nombre}!", "success")
-
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            return redirect(url_for('index'))
         else:
             flash("Correo o contraseña incorrectos.", "error")
             return redirect(url_for('login'))
 
     return render_template("login.html")
+
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
