@@ -79,54 +79,26 @@ def load_user(user_id):
     return obtener_usuario_por_id(user_id)
 
 # ==============================
-# REGISTRO
+# LOGIN
 # ==============================
-@app.route('/registro', methods=['GET', 'POST'])
-def registro():
-    if request.method == 'POST':
-        nombre = request.form.get('nombre', '').strip()
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-
-        if not nombre or not email or not password:
-            flash("Completa todos los campos.", "error")
-            return redirect(url_for('registro'))
-
-        password_hash = generate_password_hash(password)
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        try:
-            cur.execute("""
-                INSERT INTO usuarios (nombre, email, password)
-                VALUES (%s, %s, %s)
-            """, (nombre, email, password_hash))
-            conn.commit()
-            flash("Registro exitoso. Ahora inicia sesión.", "success")
-            return redirect(url_for('login'))
-        except psycopg2.IntegrityError:
-            conn.rollback()
-            flash("El correo ya está registrado.", "error")
-        except psycopg2.Error:
-            conn.rollback()
-            flash("Error al registrar usuario.", "error")
-        finally:
-            cur.close()
-            conn.close()
-
-    return render_template("registro.html")
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print("🚀 Ruta /login sí se está ejecutando")
-
+    print("prueba")
     if request.method == 'POST':
-        print("📩 POST recibido")
-        print("Email:", request.form.get('email'))
-        print("Password:", request.form.get('password'))
+        email = request.form.get('email').strip().lower()
+        password = request.form.get('password')
 
-        flash("POST recibido", "success")
-        return redirect('/login')
+        usuario = obtener_usuario_por_email(email)
+
+        if usuario and check_password_hash(usuario.password_hash, password):
+            login_user(usuario)
+            flash(f"Bienvenido {usuario.nombre}!", "success")
+
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash("Correo o contraseña incorrectos.", "error")
+            return redirect(url_for('login'))
 
     return render_template("login.html")
 
