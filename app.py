@@ -1,14 +1,15 @@
 import os
 os.environ.setdefault("WERKZEUG_HASH_METHOD", "pbkdf2:sha256")
-from flask import Flask, request, jsonify
+
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 import requests
 
-
-
+# ==============================
+# FLASK APP
+# ==============================
 app = Flask(__name__)
 app.secret_key = "sneakersmx_secret_key"
 
@@ -18,7 +19,6 @@ app.secret_key = "sneakersmx_secret_key"
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
-
 
 # ==============================
 # CONEXIÓN A BD
@@ -34,10 +34,8 @@ def get_db_connection():
     )
     return conn
 
-
-
 # ==============================
-# CLASE USUARIO (Flask-Login)
+# CLASE USUARIO
 # ==============================
 class User(UserMixin):
     def __init__(self, id, nombre, email, password_hash):
@@ -45,7 +43,6 @@ class User(UserMixin):
         self.nombre = nombre
         self.email = email
         self.password_hash = password_hash
-
 
 # ==============================
 # FUNCIONES DE CONSULTA
@@ -62,7 +59,6 @@ def obtener_usuario_por_email(email):
         return User(id=row[0], nombre=row[1], email=row[2], password_hash=row[3])
     return None
 
-
 def obtener_usuario_por_id(user_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -75,14 +71,12 @@ def obtener_usuario_por_id(user_id):
         return User(id=row[0], nombre=row[1], email=row[2], password_hash=row[3])
     return None
 
-
 # ==============================
-# LOAD USER (Flask-iin)
+# LOAD USER
 # ==============================
 @login_manager.user_loader
 def load_user(user_id):
     return obtener_usuario_por_id(user_id)
-
 
 # ==============================
 # REGISTRO
@@ -99,7 +93,6 @@ def registro():
             return redirect(url_for('registro'))
 
         password_hash = generate_password_hash(password)
-
         conn = get_db_connection()
         cur = conn.cursor()
 
@@ -123,9 +116,6 @@ def registro():
 
     return render_template("registro.html")
 
-
-
-
 # ==============================
 # LOGIN
 # ==============================
@@ -135,16 +125,13 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email').strip().lower()
         password = request.form.get('password')
-        print(email,password)
+
         usuario = obtener_usuario_por_email(email)
-        print(usuario.password_hash)
-        
-        
+
         if usuario and check_password_hash(usuario.password_hash, password):
-            print("log")
             login_user(usuario)
             flash(f"Bienvenido {usuario.nombre}!", "success")
-            
+
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
         else:
@@ -152,7 +139,6 @@ def login():
             return redirect(url_for('login'))
 
     return render_template("login.html")
-
 
 # ==============================
 # LOGOUT
@@ -163,14 +149,12 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-
 # ==============================
 # HOME
 # ==============================
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 # ==============================
 # CONÓCENOS
@@ -179,20 +163,17 @@ def index():
 def conocenos():
     return render_template('conocenos.html')
 
-
 # ==============================
-# PRODUCTOS POR MARCAS
+# PRODUCTOS
 # ==============================
 @app.route('/productos')
 def productos():
     conn = get_db_connection()
     cur = conn.cursor()
-
     cur.execute("SELECT id, nombre FROM marcas;")
     marcas_filas = cur.fetchall()
 
     productos_por_marca = []
-
     for marca_id, marca_nombre in marcas_filas:
         cur.execute("""
             SELECT id, nombre, descripcion, precio, imagen
@@ -216,7 +197,6 @@ def productos():
     conn.close()
 
     return render_template("productos.html", productos_por_marca=productos_por_marca)
-
 
 # ==============================
 # AGREGAR AL CARRITO
@@ -249,9 +229,8 @@ def agregar_carrito(id):
 
     return jsonify({"mensaje": "agregado"})
 
-
 # ==============================
-# CAMBIAR CANTIDAD
+# ACTUALIZAR CANTIDAD
 # ==============================
 @app.route('/actualizar_cantidad/<int:id>/<string:accion>')
 def actualizar_cantidad(id, accion):
@@ -269,7 +248,6 @@ def actualizar_cantidad(id, accion):
 
     session['carrito'] = carrito
     return ("", 204)
-
 
 # ==============================
 # CARRITO
@@ -300,7 +278,6 @@ def vaciar_carrito():
     session['carrito'] = []
     return redirect(url_for('carrito'))
 
-
 # ==============================
 # ELIMINAR DEL CARRITO
 # ==============================
@@ -311,7 +288,6 @@ def eliminar_carrito(id):
     session['carrito'] = carrito
     return redirect(url_for('carrito'))
 
-
 # ==============================
 # CONTACTO
 # ==============================
@@ -321,10 +297,8 @@ def contacto():
     recaptcha_secret_key = "6LfgThQsAAAAANgjrKYNTDeOT9kwDhWpz2vAqbC4"
 
     if request.method == 'POST':
-        # Obtener token reCAPTCHA del formulario
         token = request.form.get('g-recaptcha-response')
 
-        # Verificar token con Google
         response = requests.post(
             'https://www.google.com/recaptcha/api/siteverify',
             data={
@@ -338,12 +312,10 @@ def contacto():
             flash("reCAPTCHA no verificado. Intenta de nuevo.", "error")
             return redirect(url_for('contacto'))
 
-        # Obtener datos del formulario
         nombre = request.form.get('nombre')
         email = request.form.get('email')
         mensaje = request.form.get('mensaje')
 
-        # Guardar en la base de datos PostgreSQL
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
@@ -355,20 +327,16 @@ def contacto():
         conn.close()
 
         flash("Mensaje enviado con éxito", "success")
-        return render_template('contacto.html', mensaje_enviado=True, recaptcha_site_key=recaptcha_site_key)
+        return render_template(
+            'contacto.html', 
+            mensaje_enviado=True, 
+            recaptcha_site_key=recaptcha_site_key
+        )
 
-    # GET
-    return render_template('contacto.html', recaptcha_site_key=recaptcha_site_key)
-
-
-
-
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
+    return render_template("contacto.html", recaptcha_site_key=recaptcha_site_key)
 
 # ==============================
-# MENÚ PRINCIPAL Y SUBOPCIONES
+# MENÚ CHATBOT
 # ==============================
 chat_menu = {
     "inicio": {
@@ -378,15 +346,10 @@ chat_menu = {
         "Disponibilidad": "Verifica si un producto está disponible.",
         "Productos destacados": "Aquí están nuestros productos más populares."
     },
-    # Subopciones de Precios
     "Precios": ["Tallas", "Modelos", "Inicio"],
-    # Subopciones de Envíos
     "Envíos": ["México", "Internacional", "Inicio"],
-    # Subopciones de Métodos de pago
     "Métodos de pago": ["Tarjeta", "PayPal", "Transferencia", "Inicio"],
-    # Subopciones de Disponibilidad
     "Disponibilidad": ["AirMax", "Jordan", "React", "Inicio"],
-    # Subopciones de Productos destacados
     "Productos destacados": ["AirMax", "Jordan", "React", "Inicio"]
 }
 
@@ -398,7 +361,6 @@ def api_chatbot():
     data = request.get_json()
     option = data.get("option")
 
-    # MENÚ PRINCIPAL
     if option in chat_menu["inicio"]:
         reply = chat_menu["inicio"][option]
         options = chat_menu.get(option, ["Inicio"])
@@ -406,84 +368,54 @@ def api_chatbot():
             reply += "\nHaz clic en el producto para verlo."
         return jsonify({"reply": reply, "options": options})
 
-    # SUBOPCIONES DE PRECIOS
     if option == "Tallas":
-        return jsonify({
-            "reply": "Disponemos de tallas del 24 al 30 para todos los modelos.",
-            "options": ["Precios", "Inicio"]
-        })
+        return jsonify({"reply": "Disponemos de tallas del 24 al 30 para todos los modelos.", 
+                        "options": ["Precios", "Inicio"]})
+
     if option == "Modelos":
-        return jsonify({
-            "reply": "Tenemos modelos AirMax, Jordan y React disponibles.",
-            "options": ["Precios", "Inicio"]
-        })
+        return jsonify({"reply": "Tenemos modelos AirMax, Jordan y React disponibles.", 
+                        "options": ["Precios", "Inicio"]})
 
-    # SUBOPCIONES DE ENVÍOS
     if option == "México":
-        return jsonify({
-            "reply": "Los envíos dentro de México tardan 2-5 días hábiles.",
-            "options": ["Envíos", "Inicio"]
-        })
+        return jsonify({"reply": "Los envíos dentro de México tardan 2-5 días hábiles.", 
+                        "options": ["Envíos", "Inicio"]})
+
     if option == "Internacional":
-        return jsonify({
-            "reply": "Los envíos internacionales tardan 7-15 días hábiles.",
-            "options": ["Envíos", "Inicio"]
-        })
+        return jsonify({"reply": "Los envíos internacionales tardan 7-15 días hábiles.", 
+                        "options": ["Envíos", "Inicio"]})
 
-    # SUBOPCIONES DE MÉTODOS DE PAGO
     if option == "Tarjeta":
-        return jsonify({
-            "reply": "Aceptamos Visa, Mastercard y American Express.",
-            "options": ["Métodos de pago", "Inicio"]
-        })
+        return jsonify({"reply": "Aceptamos Visa, Mastercard y American Express.", 
+                        "options": ["Métodos de pago", "Inicio"]})
+
     if option == "PayPal":
-        return jsonify({
-            "reply": "Puedes pagar de forma segura con PayPal.",
-            "options": ["Métodos de pago", "Inicio"]
-        })
+        return jsonify({"reply": "Puedes pagar de forma segura con PayPal.", 
+                        "options": ["Métodos de pago", "Inicio"]})
+
     if option == "Transferencia":
-        return jsonify({
-            "reply": "También aceptamos transferencias bancarias.",
-            "options": ["Métodos de pago", "Inicio"]
-        })
+        return jsonify({"reply": "También aceptamos transferencias bancarias.", 
+                        "options": ["Métodos de pago", "Inicio"]})
 
-    # SUBOPCIONES DE DISPONIBILIDAD
     if option in ["AirMax", "Jordan", "React"]:
-        return jsonify({
-            "reply": f"Puedes ver los {option} aquí: /productos/{option}",
-            "options": ["Disponibilidad", "Inicio"]
-        })
+        return jsonify({"reply": f"Puedes ver los {option} aquí: /productos/{option}", 
+                        "options": ["Disponibilidad", "Inicio"]})
 
-    # REGRESAR AL MENÚ PRINCIPAL
     if option == "Inicio":
-        return jsonify({"reply": "Menú principal:", "options": list(chat_menu["inicio"].keys())})
+        return jsonify({"reply": "Menú principal:", 
+                        "options": list(chat_menu["inicio"].keys())})
 
-    # OPCIÓN NO RECONOCIDA
     return jsonify({"reply": "Opción no reconocida 😅 Por favor elige una opción del menú.", 
                     "options": ["Inicio"]})
 
-if __name__ == "__main__":
-    app.run(debug=True)
-
-
-
-
-
-
 # ==============================
-# RUN SERVER
+# PAGO COMPLETADO
 # ==============================
-if __name__ == '__main__':
-    app.run(debug=True)
-
-
 @app.post("/pago_completado")
 def pago_completado():
     data = request.get_json()
-    recaptcha_token = data.get("recaptcha_token")  # Token enviado desde el frontend
-    recaptcha_secret = os.environ.get("RECAPTCHA_SECRET_KEY")  # Tu secret key
+    recaptcha_token = data.get("recaptcha_token")
+    recaptcha_secret = os.environ.get("RECAPTCHA_SECRET_KEY")
 
-    # Verificar token con Google
     response = requests.post(
         "https://www.google.com/recaptcha/api/siteverify",
         data={"secret": recaptcha_secret, "response": recaptcha_token}
@@ -496,7 +428,13 @@ def pago_completado():
     print("PAGO RECIBIDO:", data["detalles"]["id"])
     print("COMPRADOR:", data["detalles"]["payer"]["name"]["given_name"])
 
-    # Vaciar carrito en la sesión
     session['carrito'] = []
 
     return jsonify({"status": "ok"})
+
+# ==============================
+# RUN SERVER
+# ==============================
+if __name__ == "__main__":
+    app.run(debug=True)
+
