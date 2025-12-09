@@ -54,7 +54,6 @@ def obtener_usuario_por_email(email):
     row = cur.fetchone()
     cur.close()
     conn.close()
-
     if row:
         return User(id=row[0], nombre=row[1], email=row[2], password_hash=row[3])
     return None
@@ -66,7 +65,6 @@ def obtener_usuario_por_id(user_id):
     row = cur.fetchone()
     cur.close()
     conn.close()
-
     if row:
         return User(id=row[0], nombre=row[1], email=row[2], password_hash=row[3])
     return None
@@ -83,25 +81,14 @@ def load_user(user_id):
 # ==============================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print("📩 Entrando a /login")
     recaptcha_secret_key = "6LcH8CUsAAAAACWvVURLaTuluhccnFkGH8Tf7c_-"
-
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        token = request.form.get('g-recaptcha-response')  # <-- Captura token
-
-        print("Email recibido:", email)
-        print("Password recibido:", password)
-        print("Token reCAPTCHA:", token)
-
-        # ===============================
-        # Verificar reCAPTCHA
-        # ===============================
+        token = request.form.get('g-recaptcha-response')
         if not token:
             flash("Por favor, verifica el reCAPTCHA.", "error")
             return redirect(url_for('login'))
-
         try:
             response = requests.post(
                 "https://www.google.com/recaptcha/api/siteverify",
@@ -109,33 +96,21 @@ def login():
                 timeout=5
             )
             result = response.json()
-            print("Resultado reCAPTCHA:", result)
         except Exception as e:
-            print("Error reCAPTCHA:", e)
             flash("Error al verificar reCAPTCHA. Intenta de nuevo.", "error")
             return redirect(url_for('login'))
-
         if not result.get("success"):
             flash("reCAPTCHA no verificado. Intenta de nuevo.", "error")
             return redirect(url_for('login'))
-
-        # ===============================
-        # Validar usuario y contraseña
-        # ===============================
         if not email or not password:
             flash("Correo o contraseña incorrectos.", "error")
             return redirect(url_for('login'))
-
         email = email.strip().lower()
         usuario = obtener_usuario_por_email(email)
-        print("Usuario encontrado:", usuario)
-
         if not usuario:
             flash("Correo o contraseña incorrectos.", "error")
             return redirect(url_for('login'))
-
         password_hash = usuario.password_hash if hasattr(usuario, 'password_hash') else usuario.password
-
         if check_password_hash(password_hash, password):
             login_user(usuario)
             flash(f"Bienvenido {usuario.nombre}!", "success")
@@ -143,28 +118,22 @@ def login():
         else:
             flash("Correo o contraseña incorrectos.", "error")
             return redirect(url_for('login'))
-
-    # ===============================
-    # GET -> renderizar modal login
-    # ===============================
     recaptcha_site_key = "6LcH8CUsAAAAADZ49CVB5T1W9_Z4AiYElGbbqkeU"
     return render_template("login.html", recaptcha_site_key=recaptcha_site_key)
 
-
+# ==============================
+# REGISTRO
+# ==============================
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         email = request.form.get('email').strip().lower()
         password = request.form.get('password')
-
-        # Revisar si ya existe
         usuario = obtener_usuario_por_email(email)
         if usuario:
             flash("El correo ya está registrado.", "error")
             return redirect(url_for('registro'))
-
-        # Guardar usuario
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
@@ -174,12 +143,9 @@ def registro():
         conn.commit()
         cur.close()
         conn.close()
-
         flash("Registro exitoso. Ahora puedes iniciar sesión.", "success")
         return redirect(url_for('login'))
-
     return render_template("registro.html")
-
 
 # ==============================
 # LOGOUT
@@ -213,7 +179,6 @@ def productos():
     cur = conn.cursor()
     cur.execute("SELECT id, nombre FROM marcas;")
     marcas_filas = cur.fetchall()
-
     productos_por_marca = []
     for marca_id, marca_nombre in marcas_filas:
         cur.execute("""
@@ -222,25 +187,15 @@ def productos():
             WHERE marca_id = %s
         """, (marca_id,))
         productos = cur.fetchall()
-
-        lista = [
-            {"id": p[0], "nombre": p[1], "descripcion": p[2], "precio": p[3], "imagen": p[4]}
-            for p in productos
-        ]
-
+        lista = [{"id": p[0], "nombre": p[1], "descripcion": p[2], "precio": p[3], "imagen": p[4]} for p in productos]
         if lista:
-            productos_por_marca.append({
-                "marca": marca_nombre,
-                "productos": lista
-            })
-
+            productos_por_marca.append({"marca": marca_nombre, "productos": lista})
     cur.close()
     conn.close()
-
     return render_template("productos.html", productos_por_marca=productos_por_marca)
 
 # ==============================
-# AGREGAR AL CARRITO
+# CARRITO
 # ==============================
 @app.route('/agregar_carrito/<int:id>')
 def agregar_carrito(id):
@@ -250,33 +205,19 @@ def agregar_carrito(id):
     fila = cur.fetchone()
     cur.close()
     conn.close()
-
     if fila:
         carrito = session.get('carrito', [])
         encontrado = next((p for p in carrito if p['id'] == fila[0]), None)
-
         if encontrado:
             encontrado['cantidad'] += 1
         else:
-            carrito.append({
-                'id': fila[0],
-                'nombre': fila[1],
-                'precio': float(fila[2]),
-                'imagen': fila[3],
-                'cantidad': 1
-            })
-
+            carrito.append({'id': fila[0], 'nombre': fila[1], 'precio': float(fila[2]), 'imagen': fila[3], 'cantidad': 1})
         session['carrito'] = carrito
-
     return jsonify({"mensaje": "agregado"})
 
-# ==============================
-# ACTUALIZAR CANTIDAD
-# ==============================
 @app.route('/actualizar_cantidad/<int:id>/<string:accion>')
 def actualizar_cantidad(id, accion):
     carrito = session.get('carrito', [])
-
     for item in carrito:
         if item['id'] == id:
             if accion == "sumar":
@@ -286,42 +227,23 @@ def actualizar_cantidad(id, accion):
                 if item['cantidad'] <= 0:
                     carrito = [p for p in carrito if p['id'] != id]
             break
-
     session['carrito'] = carrito
     return ("", 204)
 
-# ==============================
-# CARRITO
-# ==============================
 @app.route('/carrito')
 def carrito():
     carrito = session.get('carrito', [])
     subtotal = sum(item['precio'] * item['cantidad'] for item in carrito)
     envio = 150 if subtotal < 1000 else 0
     total = subtotal + envio
-
     recaptcha_site_key = os.environ.get('RECAPTCHA_SITE_KEY')
+    return render_template('carrito.html', carrito=carrito, subtotal=subtotal, envio=envio, total=total, recaptcha_site_key=recaptcha_site_key)
 
-    return render_template(
-        'carrito.html',
-        carrito=carrito,
-        subtotal=subtotal,
-        envio=envio,
-        total=total,
-        recaptcha_site_key=recaptcha_site_key
-    )
-
-# ==============================
-# VACIAR CARRITO
-# ==============================
 @app.route('/vaciar_carrito')
 def vaciar_carrito():
     session['carrito'] = []
     return redirect(url_for('carrito'))
 
-# ==============================
-# ELIMINAR DEL CARRITO
-# ==============================
 @app.route('/eliminar_carrito/<int:id>')
 def eliminar_carrito(id):
     carrito = session.get('carrito', [])
@@ -330,35 +252,30 @@ def eliminar_carrito(id):
     return redirect(url_for('carrito'))
 
 # ==============================
-# CONTACTO (reCAPTCHA FIX)
+# CONTACTO
 # ==============================
 @app.route('/contacto', methods=['GET', 'POST'])
 def contacto():
     recaptcha_site_key = "6LfgThQsAAAAAKBIskJdPoTp_e9DeehR4fWAOZQc"
     recaptcha_secret_key = "6LfgThQsAAAAANgjrKYNTDeOT9kwDhWpz2vAqbC4"
-
     if request.method == 'POST':
         token = request.form.get('g-recaptcha-response')
-
         try:
             response = requests.post(
                 'https://www.google.com/recaptcha/api/siteverify',
                 data={'secret': recaptcha_secret_key, 'response': token},
-                timeout=5  # <---- FIX RENDER
+                timeout=5
             )
             result = response.json()
         except:
             flash("Error al verificar reCAPTCHA. Intenta de nuevo.", "error")
             return redirect(url_for('contacto'))
-
         if not result.get('success'):
             flash("reCAPTCHA no verificado. Intenta de nuevo.", "error")
             return redirect(url_for('contacto'))
-
         nombre = request.form.get('nombre')
         email = request.form.get('email')
         mensaje = request.form.get('mensaje')
-
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
@@ -368,35 +285,13 @@ def contacto():
         conn.commit()
         cur.close()
         conn.close()
-
         flash("Mensaje enviado con éxito", "success")
-        return render_template(
-            'contacto.html', 
-            mensaje_enviado=True, 
-            recaptcha_site_key=recaptcha_site_key
-        )
-
+        return render_template('contacto.html', mensaje_enviado=True, recaptcha_site_key=recaptcha_site_key)
     return render_template("contacto.html", recaptcha_site_key=recaptcha_site_key)
 
 # ==============================
-# MENÚ CHATBOT MEJORADO
+# CHATBOT LIBRE (SIN MENÚ)
 # ==============================
-chat_menu = {
-    "inicio": {
-        "Precios": "Consulta los precios de nuestros productos de manera rápida.",
-        "Envíos": "Información sobre envíos y tiempos de entrega.",
-        "Métodos de pago": "Aceptamos tarjetas, PayPal y transferencia bancaria.",
-        "Disponibilidad": "Verifica si un producto está disponible.",
-        "Productos destacados": "Aquí están nuestros productos más populares."
-    },
-    "Precios": ["Tallas", "Modelos", "Inicio"],
-    "Envíos": ["México", "Internacional", "Inicio"],
-    "Métodos de pago": ["Tarjeta", "PayPal", "Transferencia", "Inicio"],
-    "Disponibilidad": ["AirMax", "Jordan", "React", "Inicio"],
-    "Productos destacados": ["AirMax", "Jordan", "React", "Inicio"]
-}
-
-# Palabras clave para respuestas dinámicas
 keywords = {
     "precio": "Precios",
     "coste": "Precios",
@@ -411,75 +306,47 @@ keywords = {
     "airmax": "AirMax",
     "jordan": "Jordan",
     "react": "React",
-    "inicio": "Inicio"
 }
 
-# ==============================
-# API CHATBOT MEJORADO
-# ==============================
+chat_menu = {
+    "inicio": {
+        "Precios": "Consulta los precios de nuestros productos de manera rápida.",
+        "Envíos": "Información sobre envíos y tiempos de entrega.",
+        "Métodos de pago": "Aceptamos tarjetas, PayPal y transferencia bancaria.",
+        "Disponibilidad": "Verifica si un producto está disponible.",
+        "Productos destacados": "Aquí están nuestros productos más populares."
+    }
+}
+
 @app.route("/api/chatbot", methods=["POST"])
 def api_chatbot():
     data = request.get_json()
     user_input = data.get("option", "").lower()
-
-    # Buscar palabras clave en la entrada del usuario
-    matched_option = None
-    for key, option in keywords.items():
+    reply = None
+    for key, response_key in keywords.items():
         if key in user_input:
-            matched_option = option
+            if response_key in chat_menu["inicio"]:
+                reply = chat_menu["inicio"][response_key]
+            elif response_key == "AirMax":
+                reply = "Puedes ver los AirMax aquí: /productos/AirMax"
+            elif response_key == "Jordan":
+                reply = "Puedes ver los Jordan aquí: /productos/Jordan"
+            elif response_key == "React":
+                reply = "Puedes ver los React aquí: /productos/React"
+            elif response_key == "Precios":
+                reply = "Consulta los precios de nuestros productos de manera rápida."
+            elif response_key == "Envíos":
+                reply = "Los envíos dentro de México tardan 2-5 días hábiles y los internacionales 7-15 días hábiles."
+            elif response_key == "Métodos de pago":
+                reply = "Aceptamos tarjetas, PayPal y transferencia bancaria."
+            elif response_key == "Disponibilidad":
+                reply = "Verifica si un producto está disponible: AirMax, Jordan o React."
+            elif response_key == "Productos destacados":
+                reply = "Aquí están nuestros productos más populares: AirMax, Jordan, React."
             break
-
-    # Si encuentra una opción válida
-    if matched_option:
-        if matched_option in chat_menu["inicio"]:
-            reply = chat_menu["inicio"][matched_option]
-            options = chat_menu.get(matched_option, ["Inicio"])
-            if matched_option == "Productos destacados":
-                reply += "\nHaz clic en el producto para verlo."
-            return jsonify({"reply": reply, "options": options})
-
-        if matched_option == "Tallas":
-            return jsonify({"reply": "Disponemos de tallas del 24 al 30 para todos los modelos.", 
-                            "options": ["Precios", "Inicio"]})
-
-        if matched_option == "Modelos":
-            return jsonify({"reply": "Tenemos modelos AirMax, Jordan y React disponibles.", 
-                            "options": ["Precios", "Inicio"]})
-
-        if matched_option == "México":
-            return jsonify({"reply": "Los envíos dentro de México tardan 2-5 días hábiles.", 
-                            "options": ["Envíos", "Inicio"]})
-
-        if matched_option == "Internacional":
-            return jsonify({"reply": "Los envíos internacionales tardan 7-15 días hábiles.", 
-                            "options": ["Envíos", "Inicio"]})
-
-        if matched_option == "Tarjeta":
-            return jsonify({"reply": "Aceptamos Visa, Mastercard y American Express.", 
-                            "options": ["Métodos de pago", "Inicio"]})
-
-        if matched_option == "PayPal":
-            return jsonify({"reply": "Puedes pagar de forma segura con PayPal.", 
-                            "options": ["Métodos de pago", "Inicio"]})
-
-        if matched_option == "Transferencia":
-            return jsonify({"reply": "También aceptamos transferencias bancarias.", 
-                            "options": ["Métodos de pago", "Inicio"]})
-
-        if matched_option in ["AirMax", "Jordan", "React"]:
-            return jsonify({"reply": f"Puedes ver los {matched_option} aquí: /productos/{matched_option}", 
-                            "options": ["Disponibilidad", "Inicio"]})
-
-        if matched_option == "Inicio":
-            return jsonify({"reply": "Menú principal:", 
-                            "options": list(chat_menu["inicio"].keys())})
-
-    # Si no encuentra coincidencias
-    return jsonify({
-        "reply": "No entendí tu mensaje 😅 Por favor elige una opción del menú o escribe otra cosa.",
-        "options": list(chat_menu["inicio"].keys())
-    })
-
+    if not reply:
+        reply = "No entendí tu mensaje 😅. Intenta preguntar sobre precios, envíos, pagos o productos."
+    return jsonify({"reply": reply})
 
 # ==============================
 # PAGO COMPLETADO
@@ -489,25 +356,18 @@ def pago_completado():
     data = request.get_json()
     recaptcha_token = data.get("recaptcha_token")
     recaptcha_secret = os.environ.get("RECAPTCHA_SECRET_KEY")
-
     try:
         response = requests.post(
             "https://www.google.com/recaptcha/api/siteverify",
             data={"secret": recaptcha_secret, "response": recaptcha_token},
-            timeout=5   # <---- FIX RENDER
+            timeout=5
         )
         result = response.json()
     except:
         return jsonify({"status": "error", "mensaje": "Error verificando reCAPTCHA"}), 400
-
     if not result.get("success") or result.get("score", 0) < 0.5:
         return jsonify({"status": "error", "mensaje": "reCAPTCHA fallido"}), 400
-
-    print("PAGO RECIBIDO:", data["detalles"]["id"])
-    print("COMPRADOR:", data["detalles"]["payer"]["name"]["given_name"])
-
     session['carrito'] = []
-
     return jsonify({"status": "ok"})
 
 # ==============================
@@ -515,4 +375,5 @@ def pago_completado():
 # ==============================
 if __name__ == "__main__":
     app.run(debug=True)
+
 
