@@ -62,36 +62,7 @@
 }
 
 
-        /* ============================================
-   ACCESIBILIDAD — PROTECCIÓN DEL PANEL
-   ============================================ */
-
-/* Mantener botón y panel siempre visibles */
-#accesibilidad-toggle,
-#accesibilidad-options {
-    position: fixed !important;
-    z-index: 99999 !important;
-}
-
-/* Evitar que los modos visuales modifiquen el panel */
-.grayscale #accesibilidad-toggle,
-.grayscale #accesibilidad-options,
-.high-contrast #accesibilidad-toggle,
-.high-contrast #accesibilidad-options,
-.night-mode #accesibilidad-toggle,
-.night-mode #accesibilidad-options {
-    filter: none !important;
-    background-color: #fff !important;
-    color: #000 !important;
-}
-
-/* Mantener visible y legible el menú */
-#accesibilidad-options {
-    background: white !important;
-    border: 2px solid black !important;
-    padding: 10px;
-    border-radius: 10px;
-}
+      
 
 
         
@@ -150,20 +121,34 @@
     <p>&copy; 2025 SneakersMX. Todos los derechos reservados.</p>
 </footer>
 
-<!-- PANEL DE ACCESIBILIDAD -->
-<div id="accesibilidad-panel">
-    <button id="accesibilidad-toggle" class="p-3 bg-orange-500 text-white rounded-l-xl hover:bg-orange-600 transition" title="Herramientas de accesibilidad">🧑‍🦯</button>
-    <div id="accesibilidad-options" class="flex flex-col gap-2 p-4">
-        <button onclick="toggleGrayscale()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Escala de grises</button>
-        <button onclick="toggleContrast()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Alto contraste</button>
-        <button onclick="increaseText()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Aumentar texto</button>
-        <button onclick="decreaseText()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Disminuir texto</button>
-        <button onclick="changeFont()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Cambiar tipografía</button>
-        <button onclick="increaseCursor()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Cursor grande</button>
-        <button onclick="togglePointer()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Puntero lector</button>
-        <button onclick="toggleNightMode()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded">Modo nocturno</button>
-    </div>
+<!-- PANEL DE ACCESIBILIDAD (NUEVO) -->
+<div id="accesibilidad-toggle">♿</div>
+
+<div id="accesibilidad-options">
+    <h3>Accesibilidad</h3>
+
+    <button onclick="toggleNightMode()">Modo nocturno</button>
+    <button onclick="toggleContrast()">Alto contraste</button>
+    <button onclick="toggleGrayscale()">Escala de grises</button>
+
+    <hr>
+
+    <button onclick="increaseText()">Aumentar texto</button>
+    <button onclick="decreaseText()">Disminuir texto</button>
+    <button onclick="changeFont()">Cambiar tipografía</button>
+
+    <hr>
+
+    <button onclick="increaseCursor()">Cursor grande</button>
+    <button onclick="togglePointer()">Puntero lector</button>
+
+    <hr>
+
+    <button onclick="document.getElementById('accesibilidad-options').classList.remove('show')">
+        Cerrar ✖
+    </button>
 </div>
+
 
 <!-- MODAL LOGIN -->
 <div id="modalLogin" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
