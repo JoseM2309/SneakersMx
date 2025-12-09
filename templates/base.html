@@ -18,84 +18,7 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <style>
-        /* ACCESIBILIDAD */
-        #accesibilidad-panel {
-            position: fixed;
-            top: 50%;
-            right: 0;
-            transform: translateY(-50%);
-            background: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            border-radius: 0.75rem 0 0 0.75rem;
-            z-index: 50;
-        }
-        #accesibilidad-panel button {
-            cursor: pointer;
-        }
-        #accesibilidad-options {
-            display: none;
-            flex-direction: column;
-            gap: 0.5rem;
-            padding: 0.75rem;
-        }
-        #accesibilidad-options.show {
-            display: flex;
-        }
-
-        /* MODOS ACCESIBILIDAD */
-        .grayscale { filter: grayscale(100%); }
-        .high-contrast { filter: contrast(200%); }
-        .large-cursor * { cursor: pointer !important; }
-        .pointer-reader * { outline: 2px solid orange !important; }
-        .night-mode { background-color: #111 !important; color: #eee !important; }
-        /* Cursor grande */
-.large-cursor * {
-    cursor: url('https://cur.cursors-4u.net/cursors/cur-2/cur150.cur'), auto !important;
-}
-
-/* Puntero lector */
-.pointer-reader *:hover {
-    outline: 3px solid #ffcc00 !important;
-    background-color: rgba(255, 230, 120, 0.3);
-    transition: 0.1s;
-}
-  /* ============================================
-   ACCESIBILIDAD — PROTECCIÓN DEL PANEL
-   ============================================ */
-
-/* Mantener botón y panel siempre visibles */
-#accesibilidad-toggle,
-#accesibilidad-options {
-    position: fixed !important;
-    z-index: 99999 !important;
-}
-
-/* Evitar que los modos visuales modifiquen el panel */
-.grayscale #accesibilidad-toggle,
-.grayscale #accesibilidad-options,
-.high-contrast #accesibilidad-toggle,
-.high-contrast #accesibilidad-options,
-.night-mode #accesibilidad-toggle,
-.night-mode #accesibilidad-options {
-    filter: none !important;
-    background-color: #fff !important;
-    color: #000 !important;
-}
-
-/* Mantener visible y legible el menú */
-#accesibilidad-options {
-    background: white !important;
-    border: 2px solid black !important;
-    padding: 10px;
-    border-radius: 10px;
-}
-
-      
-
-
-        
-    </style>
+    
 </head>
 
 <body class="bg-white text-gray-900 font-sans transition-all duration-300">
@@ -218,31 +141,56 @@ document.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = document.getElementById('accesibilidad-toggle');
     const options = document.getElementById('accesibilidad-options');
 
-    toggleBtn.addEventListener('click', () => options.classList.toggle('show'));
+    /* ==========================
+       ABRIR / CERRAR PANEL
+    ========================== */
+    toggleBtn.addEventListener('click', () => {
+        options.classList.toggle('show');
+    });
 
-    // MODO ESCALA DE GRISES
+    /* ==========================
+       MODO NOCTURNO
+    ========================== */
+    window.toggleNightMode = () => {
+        document.body.classList.toggle('night-mode');
+
+        // Protección del panel
+        options.style.background = "#fff";
+        toggleBtn.style.background = "#fff";
+        toggleBtn.style.color = "#000";
+    };
+
+    /* ==========================
+       ESCALA DE GRISES
+    ========================== */
     window.toggleGrayscale = () => {
         document.body.classList.toggle('grayscale');
     };
 
-    // MODO ALTO CONTRASTE
+    /* ==========================
+       ALTO CONTRASTE
+    ========================== */
     window.toggleContrast = () => {
         document.body.classList.toggle('high-contrast');
     };
 
-    // AUMENTAR TEXTO
+    /* ==========================
+       TEXTO + / -
+    ========================== */
     window.increaseText = () => {
         let size = parseFloat(getComputedStyle(document.body).fontSize);
         document.body.style.fontSize = (size + 2) + 'px';
     };
 
-    // DISMINUIR TEXTO
     window.decreaseText = () => {
         let size = parseFloat(getComputedStyle(document.body).fontSize);
         document.body.style.fontSize = (size - 2) + 'px';
     };
 
-    // CAMBIO DE TIPOGRAFÍA (2 TIPOS + REGRESAR A NORMAL)
+    /* ==========================
+       CAMBIO DE TIPOGRAFÍA
+       (3 modos cíclicos)
+    ========================== */
     window.changeFont = () => {
         const currentFont = document.body.dataset.font || "normal";
 
@@ -258,22 +206,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // AUMENTAR TAMAÑO DEL CURSOR
+    /* ==========================
+       CURSOR GRANDE
+    ========================== */
     window.increaseCursor = () => {
         document.body.classList.toggle('large-cursor');
     };
 
-    // ACTIVAR LECTOR (resalta el elemento apuntado)
+    /* ==========================
+       PUNTERO LECTOR
+    ========================== */
     window.togglePointer = () => {
         document.body.classList.toggle('pointer-reader');
     };
 
-    // MODO NOCTURNO
-    window.toggleNightMode = () => {
-        document.body.classList.toggle('night-mode');
-    };
-
 });
+
 
 // CHAT BOT
 const chatBubble = document.getElementById("chat-bubble");
